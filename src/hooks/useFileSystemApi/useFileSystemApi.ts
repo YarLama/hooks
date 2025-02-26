@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   saveFileHandleToIndexedDB,
   getFileHandleFromIndexedDB,
@@ -6,186 +5,173 @@ import {
   getAllRecordsFromIndexedDB,
   setCurrentFileHandleFromState,
   getCurrentFileHandleFromState,
-} from "./utils/indexedDB.ts";
+} from './utils/indexedDB.ts'
 
-const isHookSupported = !!window.showOpenFilePicker;
+const isHookSupported = !!window.showOpenFilePicker
 
 interface FileSystemState {
-  files?: File[];
-  showFilePicker: (options?: OpenFilePickerOptions) => void;
+  showFilePicker: (options?: OpenFilePickerOptions) => Promise<void[]>
   showDirectoryPicker: (
-    options?: DirectoryPickerOptions,
-  ) => Promise<void | FileSystemDirectoryHandle>;
+    options?: DirectoryPickerOptions
+  ) => Promise<void | FileSystemDirectoryHandle>
   showSavePicker: (
     data: string,
-    options?: SaveFilePickerOptions,
-  ) => Promise<void | FileSystemFileHandle>;
-  setCurrentFileHandle: (fileHandle: FileSystemFileHandle) => Promise<void>;
-  getFileHandle: (key: string) => Promise<FileSystemHandle | null>;
-  getCurrentFileHandle: () => Promise<FileSystemFileHandle | null>;
-  saveFile: (handle: FileSystemFileHandle, data: string) => void;
-  readFile: (fileHandle: FileSystemFileHandle) => Promise<string>;
+    options?: SaveFilePickerOptions
+  ) => Promise<void | FileSystemFileHandle>
+  setCurrentFileHandle: (fileHandle: FileSystemFileHandle) => Promise<void>
+  getFileHandle: (key: string) => Promise<FileSystemHandle | null>
+  getAllFileHandles: () => Promise<FileSystemFileHandle[] | null>
+  getCurrentFileHandle: () => Promise<FileSystemFileHandle | null>
+  saveFile: (handle: FileSystemFileHandle, data: string) => void
+  readFile: (fileHandle: FileSystemFileHandle) => Promise<string>
 }
 type useFileSystemState =
   | { isSupported: false }
-  | ({ isSupported: true } & FileSystemState);
+  | ({ isSupported: true } & FileSystemState)
 
-type FileSystemHandle = FileSystemFileHandle | FileSystemDirectoryHandle;
+type FileSystemHandle = FileSystemFileHandle | FileSystemDirectoryHandle
 type FileSystemApiConfig = {
-  replaceRecords?: boolean;
-  searchExistingFiles?: boolean;
-};
+  replaceRecords?: boolean
+}
 
 function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
-  const [files, setFiles] = useState<File[] | undefined>();
-
-  const getFileWithPermissions = (
+  const getFileHandleWithPermissions = (
     fileHandle: FileSystemFileHandle,
-    mode: "read" | "readwrite",
-  ): Promise<File> => {
+    mode: 'read' | 'readwrite'
+  ): Promise<FileSystemFileHandle> => {
     return fileHandle.queryPermission({ mode: mode }).then((permission) => {
-      if (permission === "granted") {
-        return fileHandle.getFile();
+      if (permission === 'granted') {
+        return fileHandle
       }
-      if (permission === "prompt") {
+      if (permission === 'prompt') {
         return fileHandle
           .requestPermission({ mode: mode })
           .then((newPermission) => {
-            if (newPermission === "granted") {
-              return fileHandle.getFile();
+            if (newPermission === 'granted') {
+              return fileHandle
             }
             return Promise.reject(
-              `User agent is not allowed ${mode} permission request`,
-            );
-          });
+              `User agent is not allowed ${mode} permission request`
+            )
+          })
       }
       return Promise.reject(
-        `User agent is not allowed ${mode} permission request`,
-      );
-    });
-  };
+        `User agent is not allowed ${mode} permission request`
+      )
+    })
+  }
 
-  useEffect(() => {
-    if (config?.searchExistingFiles) {
-      getAllRecordsFromIndexedDB()
-        .then((records) => {
-          if (records) {
-            return Promise.all(
-              records.map((fileHandle: FileSystemHandle) => {
-                if (fileHandle.kind === "file") {
-                  return getFileWithPermissions(fileHandle, "read").then((file: File) => file);
-                }
-              }),
-            );
-          }
-        })
-        .then((files) => {
-          const filesOnlyArray = files?.filter(Boolean) as File[] | undefined;
-          if (filesOnlyArray) {
-            setFiles(filesOnlyArray);
-          }
-        });
-    }
-  }, []);
+  if (!isHookSupported) return { isSupported: false }
 
-  if (!isHookSupported) return { isSupported: false };
-
-  const showOpenFilePickerHandle = (options?: OpenFilePickerOptions) => {
-    window
+  const showOpenFilePickerHandle = (options?: OpenFilePickerOptions): Promise<void[]> => {
+     return window
       .showOpenFilePicker(options ?? {})
       .then((fileHandles: FileSystemFileHandle[]) => {
         if (fileHandles) {
           if (config?.replaceRecords) {
-            clearStoreFromIndexedDB();
+            clearStoreFromIndexedDB()
           }
           if (fileHandles.length > 1) {
             for (const fileHandle of fileHandles) {
-              saveFileHandleToIndexedDB(fileHandle, fileHandle.name);
+              saveFileHandleToIndexedDB(fileHandle, fileHandle.name)
             }
           } else {
-            saveFileHandleToIndexedDB(fileHandles[0], fileHandles[0].name);
+            saveFileHandleToIndexedDB(fileHandles[0], fileHandles[0].name)
           }
         }
         return Promise.all(
-          fileHandles.map((fileHandle: FileSystemFileHandle) =>
-            fileHandle.getFile().then((file: File) => file),
-          ),
-        );
+          fileHandles.map((fileHandle: FileSystemFileHandle) => {
+            getFileHandleWithPermissions(fileHandle, 'read').then(
+              (fileHandle) => {
+                if (fileHandle)
+                  return fileHandle.getFile().then((file: File) => {
+                    return file
+                  })
+              }
+            )
+          })
+        )
       })
-      .then((results) => {
-        setFiles(results);
-      });
-  };
+  }
   const showSaveFilePicker = (
     data: string,
-    options?: SaveFilePickerOptions,
+    options?: SaveFilePickerOptions
   ): Promise<void | FileSystemFileHandle> => {
     return window
       .showSaveFilePicker(options ?? {})
       .then((handle: FileSystemFileHandle) => {
-        writeFile(handle, data);
+        writeFile(handle, data)
         if (config?.replaceRecords) {
-          clearStoreFromIndexedDB();
+          clearStoreFromIndexedDB()
         }
-        saveFileHandleToIndexedDB(handle);
-        return handle;
-      });
-  };
+        saveFileHandleToIndexedDB(handle)
+        return handle
+      })
+  }
 
   const saveFile = (handle: FileSystemFileHandle, data: string): void => {
     writeFile(handle, data).catch((e) => {
-      console.error(e);
-    });
-  };
+      console.error(e)
+    })
+  }
 
   const showDirectoryPicker = (
-    options?: DirectoryPickerOptions,
+    options?: DirectoryPickerOptions
   ): Promise<void | FileSystemDirectoryHandle> => {
     return window.showDirectoryPicker(options ?? {}).then((handle) => {
       if (config?.replaceRecords) {
-        clearStoreFromIndexedDB();
+        clearStoreFromIndexedDB()
       }
-      return handle;
-    });
-  };
+      return handle
+    })
+  }
 
   const getFileHandle = (key: string): Promise<FileSystemHandle | null> => {
     return getFileHandleFromIndexedDB(key).then((result) => {
-      return result;
-    });
-  };
+      return result
+    })
+  }
+
+  const getAllFileHandles = (): Promise<FileSystemFileHandle[] | null> => {
+    return getAllRecordsFromIndexedDB().then((records) => {
+      if (records) {
+        return records.filter((el) => el.kind === 'file')
+      }
+      return null
+    })
+  }
 
   const readFile = (fileHandle: FileSystemFileHandle): Promise<string> => {
     return fileHandle.getFile().then((file: File) => {
       return file.text().then((text) => {
-        return text;
-      });
-    });
-  };
+        return text
+      })
+    })
+  }
 
   const writeFile = (
     fileHandle: FileSystemFileHandle,
-    data: string,
+    data: string
   ): Promise<void> => {
     return fileHandle.createWritable().then((writable) => {
       return writable
         .write(data)
         .then(() => {
-          return writable.close();
+          return writable.close()
         })
         .catch((e) => {
-          console.error(`Error save ${fileHandle.name}: ${e}`);
-        });
-    });
-  };
+          console.error(`Error save ${fileHandle.name}: ${e}`)
+        })
+    })
+  }
 
   const setCurrentFileHandleFromDB = (fileHandle: FileSystemFileHandle) => {
-    return setCurrentFileHandleFromState(fileHandle);
-  };
+    return setCurrentFileHandleFromState(fileHandle)
+  }
 
   const getCurrentFileHandleFromDB = () => {
-    return getCurrentFileHandleFromState().then((fileHandle) => fileHandle);
-  };
+    return getCurrentFileHandleFromState().then((fileHandle) => fileHandle)
+  }
 
   return {
     isSupported: true,
@@ -195,10 +181,10 @@ function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
     setCurrentFileHandle: setCurrentFileHandleFromDB,
     getFileHandle: getFileHandle,
     getCurrentFileHandle: getCurrentFileHandleFromDB,
+    getAllFileHandles: getAllFileHandles,
     readFile: readFile,
     saveFile: saveFile,
-    files: files,
-  };
+  }
 }
 
-export default useFileSystemApi;
+export default useFileSystemApi
