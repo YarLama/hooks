@@ -35,6 +35,9 @@ type FileSystemApiConfig = {
 }
 
 function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
+
+  if (!isHookSupported) return { isSupported: false }
+
   const getFileHandleWithPermissions = (
     fileHandle: FileSystemFileHandle,
     mode: 'read' | 'readwrite'
@@ -61,10 +64,10 @@ function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
     })
   }
 
-  if (!isHookSupported) return { isSupported: false }
-
-  const showOpenFilePickerHandle = (options?: OpenFilePickerOptions): Promise<void[]> => {
-     return window
+  const showOpenFilePickerHandle = (
+    options?: OpenFilePickerOptions
+  ): Promise<void[]> => {
+    return window
       .showOpenFilePicker(options ?? {})
       .then((fileHandles: FileSystemFileHandle[]) => {
         if (fileHandles) {
