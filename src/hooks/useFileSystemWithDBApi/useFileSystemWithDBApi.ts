@@ -9,7 +9,7 @@ import {
 
 const isHookSupported = !!window.showOpenFilePicker
 
-interface FileSystemState {
+interface FileSystemWithDBState {
   showFilePicker: (options?: OpenFilePickerOptions) => Promise<void[]>
   showDirectoryPicker: (
     options?: DirectoryPickerOptions
@@ -27,14 +27,14 @@ interface FileSystemState {
 }
 type useFileSystemState =
   | { isSupported: false }
-  | ({ isSupported: true } & FileSystemState)
+  | ({ isSupported: true } & FileSystemWithDBState)
 
 type FileSystemHandle = FileSystemFileHandle | FileSystemDirectoryHandle
-type FileSystemApiConfig = {
+type FileSystemWithDBApiConfig = {
   replaceRecords?: boolean
 }
 
-function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
+function useFileSystemWithDBApi(config?: FileSystemWithDBApiConfig): useFileSystemState {
 
   if (!isHookSupported) return { isSupported: false }
 
@@ -190,4 +190,4 @@ function useFileSystemApi(config?: FileSystemApiConfig): useFileSystemState {
   }
 }
 
-export default useFileSystemApi
+export default useFileSystemWithDBApi

@@ -9,7 +9,7 @@ function App() {
       <nav>
         <ul>
           <li>
-            <Link to={'/useFileSystemApi'}>useFileSystemApi</Link>
+            <Link to={'/useFileSystemWithDBApi'}>useFileSystemWithDBApi</Link>
           </li>
         </ul>
       </nav>

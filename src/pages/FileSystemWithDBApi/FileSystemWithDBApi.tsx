@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import { useFileSystemApi } from '../../hooks'
+import { useFileSystemWithDBApi } from '../../hooks'
 import { useEffect, useState } from 'react'
 
 const showFilePickerOptions: OpenFilePickerOptions = {
   multiple: true,
 }
 
-export default function FileSystemApiPage() {
+export default function FileSystemWithDBApiPage() {
   const [fileList, setFileList] = useState<File[]>([])
   const [fileTexts, setFileTexts] = useState<string>('')
   const [fileSize, setFileSize] = useState<number>(0)
@@ -14,7 +14,7 @@ export default function FileSystemApiPage() {
   const [currentFileHandle, setCurrentFileHandle] = useState<
     FileSystemFileHandle | undefined
   >(undefined)
-  const fs = useFileSystemApi({
+  const fs = useFileSystemWithDBApi({
     replaceRecords: true,
   })
   const handleOpenFilePickerClick = () => {
