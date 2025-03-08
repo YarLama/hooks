@@ -11,6 +11,9 @@ function App() {
           <li>
             <Link to={'/useFileSystemWithDBApi'}>useFileSystemWithDBApi</Link>
           </li>
+          <li>
+            <Link to={'/useIndexedDB'}>useIndexedDB</Link>
+          </li>
         </ul>
       </nav>
     </>
