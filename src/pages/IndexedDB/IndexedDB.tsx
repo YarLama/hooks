@@ -85,7 +85,7 @@ export default function IndexedDBPage() {
   }
 
   const handleDatabaseCreateClick = (name: string, version?: number) => {
-    db.openDatabase({ dbName: name, dbVersion: version }).then((db) => {
+    db.init({ dbName: name, dbVersion: version }).then((db) => {
       setCurrentDB(db)
     })
   }

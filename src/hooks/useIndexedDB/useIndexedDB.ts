@@ -194,7 +194,7 @@ function useIndexedDB() {
     })
   }
   return {
-    openDatabase: openDB,
+    init: openDB,
     createStore: createStore,
     createIndex: createIndex,
     addRecord: addRecord,
