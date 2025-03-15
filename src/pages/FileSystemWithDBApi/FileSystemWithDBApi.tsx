@@ -62,7 +62,7 @@ export default function FileSystemWithDBApiPage() {
   const handleOpenDirectoryPickerClick = () =>
     fs.isSupported && fs.showDirectoryPicker()
 
-  const handleTextareaChange = (e) => {
+  const handleTextareaChange = (e: any) => {
     const text = e.target.value
     setFileTexts(text)
   }
